@@ -5,7 +5,7 @@ Python script for syncing zone data with Mythic Beasts primary DNS API service.
 Running via `pipenv`:
 
 ```
-pipenv run python3 -- ./sync-zone.py --credentials credentials.json --zone example.org
+pipenv run python3 -- ./sync-zone.py --credentials-file credentials.json --zone example.org --zone-file zones/example.org
 ```
 
 You must pass `--` to `pipenv` otherwise it will consume all the arguments
