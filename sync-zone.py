@@ -1,7 +1,6 @@
 # Standard library modules
 import argparse
 import json
-import sys
 
 # External modules
 import requests
