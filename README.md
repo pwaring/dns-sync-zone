@@ -6,6 +6,10 @@ This script operates by fetching all the existing zone records, deleting any
 which already exist and then adding those specified in a file. This effectively
 syncronises the nameserver zone with the one in the file.
 
+## Usage
+
+For help, run `./sync-zone.py -h`, which will print all the options.
+
 Running via `pipenv`:
 
 ```
