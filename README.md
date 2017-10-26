@@ -24,7 +24,7 @@ intended for `sync-zone.py`.
 
 This script assumes that you are using the 'Mythic Beasts nameservers only'
 template and that the SOA and NS records for the zone already exist. The script
-will not allow you to upload new SOA and NS records, nor will it removes any
+will not allow you to upload new SOA and NS records, nor will it remove any
 existing SOA and NS records.
 
 Only a subset of record types are supported at present because the author does
