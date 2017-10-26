@@ -38,6 +38,15 @@ existing SOA and NS records.
 Only a subset of record types are supported at present because the author does
 not need the others.
 
+## Support
+
+If you're having trouble using the script, or have run across a bug, please open
+an issue on GitHub. This support route is free and provided in the maintainer's
+spare time.
+
+Paid support is available from the maintainer. Please email them directly at
+paul@xk7.net for details.
+
 ## Contributions
 
 Contributions are welcome using the following mechanisms:
