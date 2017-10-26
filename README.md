@@ -2,6 +2,10 @@
 
 Python script for syncing zone data with Mythic Beasts primary DNS API service.
 
+**Disclaimer:** Although this script accesses an API provided by Mythic Beasts,
+the owner of this repository is not affiliated with them and this software is
+not endorsed by Mythic Beasts Ltd.
+
 This script operates by fetching all the existing zone records, deleting any
 which already exist and then adding those specified in a file. This effectively
 syncronises the nameserver zone with the one in the file.
