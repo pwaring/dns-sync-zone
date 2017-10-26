@@ -41,10 +41,10 @@ not need the others.
 ## Support
 
 If you're having trouble using the script, or have run across a bug, please open
-an issue on GitHub. This support route is free and provided in the maintainer's
+an issue on GitHub. This support route is free and provided in the author's
 spare time.
 
-Paid support is available from the maintainer. Please email them directly at
+Paid support is available directly from the author. Please email them at
 paul@xk7.net for details.
 
 ## Contributions
