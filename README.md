@@ -21,7 +21,7 @@ intended for `sync-zone.py`.
 
 ## Dependencies
 
- * Python 3.x (development is done in 3.6.x). Python 2 is not and will not be supported.
+ * Python 3.x (development is done in 3.6.x). Python 2 is intentionally not supported.
  * [Requests](https://requests.readthedocs.io)
 
 ## Limitations
