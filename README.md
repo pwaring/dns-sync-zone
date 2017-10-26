@@ -48,3 +48,8 @@ a feature which may never be merged.
 
 If you want to substantially expand on this script, you are welcome and
 encouraged to fork the repository.
+
+## Licence
+
+This software is available under the MIT licence, details of which can be found
+in the `LICENSE` file.
