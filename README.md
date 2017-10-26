@@ -19,3 +19,13 @@ intended for `sync-zone.py`.
 
  * Python 3.x (development is done in 3.6.x). Python 2 is not and will not be supported.
  * [Requests](https://requests.readthedocs.io)
+
+## Limitations
+
+This script assumes that you are using the 'Mythic Beasts nameservers only'
+template and that the SOA and NS records for the zone already exist. The script
+will not allow you to upload new SOA and NS records, nor will it removes any
+existing SOA and NS records.
+
+Only a subset of record types are supported at present because the author does
+not need the others.
