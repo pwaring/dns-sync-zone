@@ -54,7 +54,7 @@ Contributions are welcome using the following mechanisms:
  * Bug fixes: Fork the repository, make your changes and then open a pull request.
  * New features: Open an issue with the rough details of the proposed new feature.
 
-This script is intended to be very specific and have a limited use case. If you
+This script is intended to be very specific and has a limited use case. If you
 are thinking about adding new functionality, please open an issue first outlining
 the changes you are proposing so that you don't spend a lot of time developing
 a feature which may never be merged.
