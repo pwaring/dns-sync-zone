@@ -40,7 +40,7 @@ not need the others.
 
 ## Support
 
-If you're having trouble using the script, or have run across a bug, please open
+If you are having trouble using the script, or have run across a bug, please open
 an issue on GitHub. This support route is free and provided in the author's
 spare time.
 
