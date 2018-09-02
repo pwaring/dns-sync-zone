@@ -31,7 +31,7 @@ def validate_zone_record(zone_record):
     valid_commands = ['ADD', 'DELETE', 'REPLACE']
 
     # Only a subset of all valid types are supported
-    valid_types_basic = ['A', 'CNAME', 'AAAA']
+    valid_types_basic = ['A', 'CNAME', 'AAAA', 'ANAME']
     valid_types_extra = ['MX', 'TXT']
 
     if skip_zone_record(zone_record):
