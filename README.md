@@ -46,7 +46,7 @@ an issue on GitHub. This support route is free and provided in the author's
 spare time.
 
 Paid support is available directly from the author. Please email them at
-paul@xk7.net for details.
+paul@phpdeveloper.org.uk for details.
 
 ## Contributions
 
