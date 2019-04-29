@@ -7,7 +7,7 @@ the owner of this repository is not affiliated with them and this software is
 not endorsed by Mythic Beasts Ltd.
 
 This script operates by fetching all the existing zone records, deleting them
-and then adding those specified in a file. This effectively syncronises the
+and then adding those specified in a file. This effectively synchronises the
 nameserver zone with the one in the file. Both the deletions and additions are
 performed in a single transaction.
 
