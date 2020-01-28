@@ -124,7 +124,7 @@ for delete_record in delete_records:
 sync_commands = delete_commands
 for zone_record in zone_records.splitlines():
     if not skip_zone_record(zone_record):
-        sync_commands.append(zone_record)
+        sync_commands.append(" ".join(zone_record.split()))
 
 print(sync_commands)
 
