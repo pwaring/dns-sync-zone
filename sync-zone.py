@@ -6,28 +6,32 @@ import sys
 # External modules
 import requests
 
-"""
-Whether a zone record should be skipped or not.
-Records are skipped if they are empty or start with a # (indicating a comment).
 
-:param zone_record: Full zone record, including the command (e.g. ADD).
-:returns: True if the record should be skipped, false otherwise.
-"""
 def skip_zone_record(zone_record):
+    """Whether a zone record should be skipped or not.
+
+    Records are skipped if they are empty or start with
+    a # (indicating a comment).
+
+    :param zone_record: Full zone record, including the command (e.g. ADD).
+    :returns: True if the record should be skipped, false otherwise.
+    """
     zone_record = zone_record.strip()
 
     return (not zone_record or zone_record[:1] == '#')
 
-"""
-Validate a zone record.
-This validation is not exhaustive and may allow some invalid records through
-(false positive) or reject valid records (false negative). It is mainly
-intended to catch common errors, although in time it will be expanded.
 
-:param zone_record: Full zone record, including the command (e.g. ADD).
-:returns: True if the record appears valid, false otherwise.
-"""
 def validate_zone_record(zone_record):
+    """Validate a zone record.
+
+    This validation is not exhaustive and may allow some invalid
+    records through (false positive) or reject valid records (false
+    negative). It is mainly intended to catch common errors, although
+    in time it will be expanded.
+
+    :param zone_record: Full zone record, including the command (e.g. ADD).
+    :returns: True if the record appears valid, false otherwise.
+    """
     valid_commands = ['ADD', 'DELETE', 'REPLACE']
 
     # Only a subset of all valid types are supported
