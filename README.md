@@ -55,13 +55,8 @@ Contributions are welcome using the following mechanisms:
  * Bug fixes: Fork the repository, make your changes and then open a pull request.
  * New features: Open an issue with the rough details of the proposed new feature.
 
-This script is intended to be very specific and has a limited use case. If you
-are thinking about adding new functionality, please open an issue first outlining
-the changes you are proposing so that you don't spend a lot of time developing
-a feature which may never be merged.
-
-If you want to substantially expand on this script, you are welcome and
-encouraged to fork the repository.
+New features are welcome, but opening an issue first allows for discussion and
+avoids multiple people working on the same feature.
 
 ## Licence
 
