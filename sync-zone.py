@@ -2,6 +2,8 @@
 import argparse
 import json
 import sys
+import string
+import re
 
 # External modules
 import requests
@@ -47,6 +49,118 @@ class MythicAPI(object):
         return requests.post(self.uri, data=self.payload)
 
 
+def is_valid_label(label, strict=True):
+    """Checks that label is valid"""
+    # Can't be too short or long
+    if not (1 < len(label) <= 63):
+        return False
+    if not strict:
+        return True
+    # May not start with a number
+    if label[0] in string.digits:
+        return False
+    # May not end with a hyphen
+    if label.endswith("-"):
+        return False
+    # Check for forbidden characters
+    match = re.search(r"[^a-zA-Z0-9-]", label)
+    return match is None
+
+
+def is_valid_domain(domain, strict=True):
+    """Check for validity of domain as specified in RFC1035"""
+    if not (1 < len(domain) <= 255):
+        return False
+    if domain.endswith("."):
+        domain = domain[:-1]
+    # NB. "." is valid in some contexts
+    for label in domain.split("."):
+        if not is_valid_label(label, strict=strict):
+            return False
+    return True
+
+
+def is_valid_name(name, strict=True):
+    """Check validity of a hostname"""
+    if name in ["@", "*"]:
+        # Special cases
+        return True
+    return is_valid_domain(name, strict=strict)
+
+
+def is_valid_target(name):
+    """Check that the target of a RR is valid"""
+    if not name.endswith("."):
+        print(
+            "*** Warning: target {} is missing a terminating dot".format(name)
+        )
+    return is_valid_domain(name)
+
+
+def is_valid_ttl(ttl):
+    """Check that ttl value is valid (ie. positive signed 32 bit number)"""
+    match = re.search(r"[^0-9]", ttl)
+    if match is not None:
+        return False
+    value = int(ttl)
+    if not (0 <= value < 2 ** 31):
+        return False
+    return True
+
+
+def is_valid_mx(preference, exchange):
+    """Check an MX record"""
+    # preference should be an unsigned 16 bit integer
+    match = re.search(r"[^0-9]", preference)
+    if match is not None:
+        return False
+    value = int(preference)
+    if not (0 <= value < 2 ** 16):
+        return False
+    return is_valid_target(exchange)
+
+
+def is_valid_ipv4(address):
+    """Check an IPv4 address for validity"""
+    octets = address.split(".")
+    if len(octets) != 4:
+        return False
+    for o in octets:
+        try:
+            value = int(o)
+        except ValueError:
+            return False
+        if not (0 <= value <= 255):
+            return False
+    return True
+
+
+def is_valid_ipv6(address):
+    """Check an IPv6 address for validity"""
+    groups = address.split(":")
+    if len(groups) < 3:
+        # minimum is abcd::1
+        return False
+    if len(groups) > 8:
+        return False
+    gap = False
+    for h in groups:
+        if len(h) == 0:
+            if gap:
+                return False
+            gap = True
+        else:
+            try:
+                value = int(h, base=16)
+            except ValueError:
+                return False
+            if not (0 <= value <= 0xFFFF):
+                return False
+    if len(groups) < 8 and not gap:
+        return False
+    return True
+
+
 def skip_zone_record(zone_record):
     """Whether a zone record should be skipped or not.
 
@@ -77,6 +191,7 @@ def validate_zone_record(zone_record):
     # Only a subset of all valid types are supported
     valid_types_basic = ["A", "CNAME", "AAAA", "ANAME"]
     valid_types_extra = ["MX", "TXT"]
+    non_strict_types = ["TXT", "SRV"]
 
     if skip_zone_record(zone_record):
         return True
@@ -90,12 +205,15 @@ def validate_zone_record(zone_record):
             record_command = zone_record_parts[0]
             record_hostname = zone_record_parts[1]
             record_ttl = zone_record_parts[2]
-            record_type = zone_record_parts[3]
+            record_type = zone_record_parts[3].upper()
+
+            strict_name = record_type not in non_strict_types
 
             # Command, TTL and type are required for all records
             if (
                 record_command in valid_commands
-                and record_ttl.isdigit()
+                and is_valid_ttl(record_ttl)
+                and is_valid_name(record_hostname, strict_name)
                 and (
                     record_type in valid_types_basic
                     or record_type in valid_types_extra
@@ -105,7 +223,13 @@ def validate_zone_record(zone_record):
                     # Looks like a standard record type
                     record_data = zone_record_parts[4]
 
-                    if (
+                    if record_type in ["CNAME", "ANAME"]:
+                        return is_valid_target(record_data)
+                    elif record_type == "A":
+                        return is_valid_ipv4(record_data)
+                    elif record_type == "AAAA":
+                        return is_valid_ipv6(record_data)
+                    elif (
                         record_type in valid_types_basic
                         or record_type == "TXT"
                     ):
@@ -113,9 +237,7 @@ def validate_zone_record(zone_record):
                 elif len(zone_record_parts) == 6 and record_type == "MX":
                     record_priority = zone_record_parts[4]
                     record_data = zone_record_parts[5]
-
-                    if record_priority.isdigit():
-                        return True
+                    return is_valid_mx(record_priority, record_data)
                 elif len(zone_record_parts) >= 5 and record_type == "TXT":
                     record_data = zone_record_parts[4:]
                     return True
