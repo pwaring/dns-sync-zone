@@ -85,6 +85,13 @@ def validate_zone_record(zone_record):
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
+    "-n",
+    "--dry-run",
+    help="dry run: check commands but do not perform any actions",
+    action="store_false",
+    dest="perform_sync",
+)
+parser.add_argument(
     "--credentials-file", help="path to credentials file", required=True
 )
 parser.add_argument(
@@ -146,8 +153,11 @@ for zone_record in zone_records.splitlines():
 
 print(sync_commands)
 
-sync_payload = base_payload
-sync_payload["command"] = sync_commands
-sync_response = requests.post(api_uri, data=sync_payload)
+if args.perform_sync:
+    sync_payload = base_payload
+    sync_payload["command"] = sync_commands
+    sync_response = requests.post(api_uri, data=sync_payload)
 
-print(sync_response.text)
+    print(sync_response.text)
+else:
+    print("* Dry run: no action taken")
