@@ -7,6 +7,46 @@ import sys
 import requests
 
 
+class APIError(Exception):
+    """Class for exceptions"""
+
+    def __init__(self, command, message):
+        self.command = command
+        self.message = message
+
+
+class MythicAPI(object):
+    """Class abstracting Mythic Beasts' Primary DNS API"""
+    def __init__(self, domain, password):
+        self.valid = True
+        self.payload = {
+            "domain": args.zone,
+            "password": credentials[args.zone],
+            "command": None,
+        }
+        self.uri = "https://dnsapi.mythic-beasts.com/"
+        response = self.call("LIST")
+        if response.text.startswith("ERR "):
+            error = response.text[4:].strip()
+            self.valid = False
+            raise APIError("LIST", error)
+        else:
+            self._list = response
+
+    def check_valid(self, command=""):
+        if not self.valid:
+            raise APIError(command, "Operation on invalid API access")
+
+    def list(self):
+        self.check_valid()
+        return self._list
+
+    def call(self, commands):
+        self.check_valid()
+        self.payload["command"] = commands
+        return requests.post(self.uri, data=self.payload)
+
+
 def skip_zone_record(zone_record):
     """Whether a zone record should be skipped or not.
 
@@ -113,19 +153,14 @@ for zone_record in zone_records.splitlines():
 with open(args.credentials_file) as f:
     credentials = json.load(f)
 
-base_payload = {
-    "domain": args.zone,
-    "password": credentials[args.zone],
-    "command": "",
-}
-
-api_uri = "https://dnsapi.mythic-beasts.com/"
+try:
+    api = MythicAPI(args.zone, credentials[args.zone])
+except APIError as err:
+    print("* Error: {}".format(err.message))
+    sys.exit(2)
 
 # Get all the existing records
-list_payload = base_payload
-list_payload["command"] = "LIST"
-
-list_response = requests.post(api_uri, data=list_payload)
+list_response = api.list()
 list_records = list_response.text.splitlines()
 
 # Create DELETE [record] commands for all existing records returned by LIST,
@@ -151,13 +186,11 @@ for zone_record in zone_records.splitlines():
     if not skip_zone_record(zone_record):
         sync_commands.append(" ".join(zone_record.split()))
 
-print(sync_commands)
+for cmd in sync_commands:
+    print(cmd)
 
 if args.perform_sync:
-    sync_payload = base_payload
-    sync_payload["command"] = sync_commands
-    sync_response = requests.post(api_uri, data=sync_payload)
-
+    sync_response = api.call(sync_commands)
     print(sync_response.text)
 else:
     print("* Dry run: no action taken")
