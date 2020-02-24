@@ -19,6 +19,7 @@ class APIError(Exception):
 
 class MythicAPI(object):
     """Class abstracting Mythic Beasts' Primary DNS API"""
+
     def __init__(self, domain, password):
         self.valid = True
         self.payload = {
@@ -88,9 +89,9 @@ def is_valid_name(name, strict=True):
     return is_valid_domain(name, strict=strict)
 
 
-def is_valid_target(name):
+def is_valid_target(name, strict=False):
     """Check that the target of a RR is valid"""
-    if not name.endswith("."):
+    if strict and not name.endswith("."):
         print(
             "*** Warning: target {} is missing a terminating dot".format(name)
         )
@@ -99,6 +100,8 @@ def is_valid_target(name):
 
 def is_valid_ttl(ttl):
     """Check that ttl value is valid (ie. positive signed 32 bit number)"""
+    if len(ttl) == 0:
+        return False
     match = re.search(r"[^0-9]", ttl)
     if match is not None:
         return False
@@ -108,16 +111,43 @@ def is_valid_ttl(ttl):
     return True
 
 
+def is_valid_uint16(s):
+    if len(s) == 0:
+        return False
+    match = re.search(r"[^0-9]", s)
+    if match is not None:
+        return False
+    value = int(s)
+    if not (0 <= value < 2 ** 16):
+        return False
+    return True
+
+
+def is_valid_uint8(s):
+    if len(s) == 0:
+        return False
+    match = re.search(r"[^0-9]", s)
+    if match is not None:
+        return False
+    value = int(s)
+    if not (0 <= value < 2 ** 8):
+        return False
+    return True
+
+
+def is_valid_hex(s):
+    if len(s) == 0:
+        return False
+    match = re.search(r"[^0-9a-f]", s.lower())
+    return match is None
+
+
 def is_valid_mx(preference, exchange):
     """Check an MX record"""
     # preference should be an unsigned 16 bit integer
-    match = re.search(r"[^0-9]", preference)
-    if match is not None:
-        return False
-    value = int(preference)
-    if not (0 <= value < 2 ** 16):
-        return False
-    return is_valid_target(exchange)
+    return is_valid_uint16(preference) and is_valid_target(
+        exchange, strict=True
+    )
 
 
 def is_valid_ipv4(address):
@@ -161,6 +191,34 @@ def is_valid_ipv6(address):
     return True
 
 
+def tokenize(line):
+    tokens = []
+    tok = ""
+    quoted = False
+    for c in line:
+        if quoted:
+            tok += c
+            if c == '"':
+                quoted = False
+        elif c in [" ", "\t"]:
+            if len(tok) > 0:
+                tokens.append(tok)
+                tok = ""
+            elif len(tokens) == 0:
+                tokens.append("")
+        else:
+            if c == '"':
+                quoted = True
+            if c == ";":
+                break
+            tok += c
+    if quoted:
+        raise APIError("Unclosed quotes", line)
+    if tok:
+        tokens.append(tok)
+    return tokens
+
+
 def skip_zone_record(zone_record):
     """Whether a zone record should be skipped or not.
 
@@ -175,7 +233,7 @@ def skip_zone_record(zone_record):
     return not zone_record or zone_record[:1] == "#"
 
 
-def validate_zone_record(zone_record):
+def validate_zone_record(zone_record, strict=False):
     """Validate a zone record.
 
     This validation is not exhaustive and may allow some invalid
@@ -187,10 +245,6 @@ def validate_zone_record(zone_record):
     :returns: True if the record appears valid, false otherwise.
     """
     valid_commands = ["ADD", "DELETE", "REPLACE"]
-
-    # Only a subset of all valid types are supported
-    valid_types_basic = ["A", "CNAME", "AAAA", "ANAME"]
-    valid_types_extra = ["MX", "TXT"]
     non_strict_types = ["TXT", "SRV"]
 
     if skip_zone_record(zone_record):
@@ -198,49 +252,79 @@ def validate_zone_record(zone_record):
     else:
         # Looks like an actual record
         zone_record = zone_record.strip()
-        zone_record_parts = zone_record.split()
+        try:
+            zone_record_parts = tokenize(zone_record)
+        except APIError as err:
+            print("*", err.message)
+            return False
 
         if len(zone_record_parts) >= 5:
             # First four fields are the same for all records
-            record_command = zone_record_parts[0]
-            record_hostname = zone_record_parts[1]
-            record_ttl = zone_record_parts[2]
-            record_type = zone_record_parts[3].upper()
+            (
+                record_command,
+                record_hostname,
+                record_ttl,
+                record_type,
+                *record_data,
+            ) = zone_record_parts
+            record_type = record_type.upper()
 
             strict_name = record_type not in non_strict_types
 
-            # Command, TTL and type are required for all records
-            if (
-                record_command in valid_commands
-                and is_valid_ttl(record_ttl)
-                and is_valid_name(record_hostname, strict_name)
-                and (
-                    record_type in valid_types_basic
-                    or record_type in valid_types_extra
-                )
-            ):
-                if len(zone_record_parts) == 5:
-                    # Looks like a standard record type
-                    record_data = zone_record_parts[4]
+            if record_command not in valid_commands:
+                return False
+            if not is_valid_ttl(record_ttl):
+                return False
+            if not is_valid_name(record_hostname, strict_name):
+                return False
 
-                    if record_type in ["CNAME", "ANAME"]:
-                        return is_valid_target(record_data)
-                    elif record_type == "A":
-                        return is_valid_ipv4(record_data)
-                    elif record_type == "AAAA":
-                        return is_valid_ipv6(record_data)
-                    elif (
-                        record_type in valid_types_basic
-                        or record_type == "TXT"
-                    ):
-                        return True
-                elif len(zone_record_parts) == 6 and record_type == "MX":
-                    record_priority = zone_record_parts[4]
-                    record_data = zone_record_parts[5]
-                    return is_valid_mx(record_priority, record_data)
-                elif len(zone_record_parts) >= 5 and record_type == "TXT":
-                    record_data = zone_record_parts[4:]
-                    return True
+            fields = len(record_data)
+            if record_type in ["CNAME", "ANAME"]:
+                return (fields == 1) and is_valid_target(
+                    record_data[0], strict=strict
+                )
+            elif record_type == "A":
+                return (fields == 1) and is_valid_ipv4(record_data[0])
+            elif record_type == "AAAA":
+                return (fields == 1) and is_valid_ipv6(record_data[0])
+            elif record_type == "TXT":
+                return fields == 1
+            elif record_type == "MX":
+                if fields != 2:
+                    return False
+                priority, host = record_data
+                return is_valid_mx(priority, host)
+            elif record_type == "SRV":
+                if fields != 4:
+                    return False
+                priority, weight, port, target = record_data
+                return (
+                    is_valid_uint16(priority)
+                    and is_valid_uint16(weight)
+                    and is_valid_uint16(port)
+                    and is_valid_target(target, strict=strict)
+                    and record_hostname.startswith("_")
+                )
+            elif record_type == "CAA":
+                if fields != 3:
+                    return False
+                flags, tag, value = record_data
+                if tag.lower() not in ["issue", "issuewild", "iodef"]:
+                    return False
+                # not checking value, which is arbitrary text
+                return is_valid_uint8(flags)
+            elif record_type == "SSHFP":
+                if fields != 3:
+                    return False
+                algorithm, fingerprint_type, fingerprint = record_data
+                return (
+                    is_valid_uint8(algorithm)
+                    and is_valid_uint8(fingerprint_type)
+                    and is_valid_hex(fingerprint)
+                )
+            else:
+                print("Cannot validate type {}".format(record_type))
+                return not strict
 
     return False
 
@@ -252,6 +336,9 @@ parser.add_argument(
     help="dry run: check commands but do not perform any actions",
     action="store_false",
     dest="perform_sync",
+)
+parser.add_argument(
+    "--strict", help="perform stricter checking", action="store_true"
 )
 parser.add_argument(
     "--credentials-file", help="path to credentials file", required=True
@@ -267,10 +354,11 @@ with open(args.zone_file) as f:
 
 # Validate all new zone records
 for zone_record in zone_records.splitlines():
-    if not validate_zone_record(zone_record):
+    if not validate_zone_record(zone_record, args.strict):
         print("The following record failed validation:")
         print(zone_record)
         sys.exit(1)
+
 
 with open(args.credentials_file) as f:
     credentials = json.load(f)
@@ -279,6 +367,9 @@ try:
     api = MythicAPI(args.zone, credentials[args.zone])
 except APIError as err:
     print("* Error: {}".format(err.message))
+    sys.exit(2)
+except KeyError as err:
+    print("* Error: {} not in credentials".format(err.args[0]))
     sys.exit(2)
 
 # Get all the existing records
