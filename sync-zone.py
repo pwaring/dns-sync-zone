@@ -288,7 +288,12 @@ def validate_zone_record(zone_record, strict=False):
             elif record_type == "AAAA":
                 return (fields == 1) and is_valid_ipv6(record_data[0])
             elif record_type == "TXT":
-                return fields == 1
+                if fields == 0:
+                    return False
+                if fields > 1 and strict:
+                    print("* Warning: TXT record has multiple parts")
+                    print(zone_record)
+                return True
             elif record_type == "MX":
                 if fields != 2:
                     return False
