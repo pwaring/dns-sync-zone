@@ -1,0 +1,7 @@
+$ORIGIN example.org.
+
+@ 3600 A 192.0.2.0
+@ 3600 AAAA 2001:db8:0:0:0:0:0:0
+
+@ 3600 TXT v=spf1 mx ~all
+@ 3600 MX 15 mail.example.org.
