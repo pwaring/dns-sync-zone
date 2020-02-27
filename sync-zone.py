@@ -8,6 +8,8 @@ import re
 # External modules
 import requests
 
+import rfcparser
+
 
 class APIError(Exception):
     """Class for exceptions"""
@@ -351,14 +353,34 @@ parser.add_argument(
 parser.add_argument(
     "--zone", help="name of zone (e.g. example.org)", required=True
 )
-parser.add_argument("--zone-file", help="path to zone file", required=True)
+parser.add_argument("--zone-file", help="path to zone file")
+parser.add_argument("--rfc-file", help="path to bind-style zone file")
 args = parser.parse_args()
 
-with open(args.zone_file) as f:
-    zone_records = f.read()
+if args.zone_file:
+    with open(args.zone_file) as f:
+        zone_records = f.read().splitlines()
+elif args.rfc_file:
+    try:
+        with open(args.rfc_file) as f:
+            zone = rfcparser.RFCParser(f)
+        zone_records = zone.records("ADD")
+        if args.zone != zone.domain():
+            print("Zonefile origin domain is not for specified zone")
+            print(args.zone, "!=", zone.domain())
+            sys.exit(1)
+    except rfcparser.RFCParserError as err:
+        if err.line:
+            print(f"Error: {err.message} in {err.line}")
+        else:
+            print(f"Error: {err.message}")
+        sys.exit(1)
+else:
+    print("No zone file provided.")
+    sys.exit(1)
 
 # Validate all new zone records
-for zone_record in zone_records.splitlines():
+for zone_record in zone_records:
     if not validate_zone_record(zone_record, args.strict):
         print("The following record failed validation:")
         print(zone_record)
