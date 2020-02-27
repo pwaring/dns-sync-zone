@@ -404,7 +404,7 @@ list_response = api.list()
 list_records = list_response.text.splitlines()
 
 # Create DELETE [record] commands for all existing records returned by LIST,
-# except NS records
+# except NS and SOA records
 delete_records = []
 
 for list_record in list_records:
