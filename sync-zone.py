@@ -5,10 +5,11 @@ import sys
 import string
 import re
 
+# Local modules
+import rfcparser
+
 # External modules
 import requests
-
-import rfcparser
 
 
 class APIError(Exception):
