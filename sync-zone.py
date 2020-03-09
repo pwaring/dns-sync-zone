@@ -428,7 +428,8 @@ for delete_record in delete_records:
     delete_commands.append("DELETE " + delete_record)
 
 # Send all the DELETE and new zone entries in one transaction
-sync_commands = delete_commands
+sync_commands = []
+sync_commands.extend(delete_commands)
 for zone_record in zone_records:
     if not skip_zone_record(zone_record):
         sync_commands.append(" ".join(zone_record.split()))
