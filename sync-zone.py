@@ -9,6 +9,7 @@ import re
 from mythic import MythicAPI
 import rfcparser
 
+
 class APIError(Exception):
     """Class for exceptions"""
 
@@ -342,7 +343,9 @@ elif args.rfc_file:
     try:
         with open(args.rfc_file) as f:
             zone = rfcparser.RFCParser(f)
-        zone_records = zone.records("ADD")
+        zone_records = zone.records(
+            "ADD", include_dangerous=args.include_dangerous
+        )
         if args.zone != zone.domain():
             print("Zonefile origin domain is not for specified zone")
             print(args.zone, "!=", zone.domain())
