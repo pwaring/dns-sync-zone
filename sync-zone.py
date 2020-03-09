@@ -408,7 +408,8 @@ except KeyError as err:
 
 # Get all the existing records
 list_response = api.list()
-list_records = list_response.text.splitlines()
+# rstrip needed as Mythic adds a trailing space to the LIST responses
+list_records = [l.rstrip() for l in list_response.text.splitlines()]
 
 # Create DELETE [record] commands for all existing records returned by LIST,
 # except NS and SOA records
