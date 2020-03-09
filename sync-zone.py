@@ -4,17 +4,9 @@ import json
 import sys
 
 # Local modules
-from mythic import MythicAPI
+import mythic
 import rfcparser
 import zone_validate
-
-
-class APIError(Exception):
-    """Class for exceptions"""
-
-    def __init__(self, command, message):
-        self.command = command
-        self.message = message
 
 
 parser = argparse.ArgumentParser()
@@ -87,8 +79,8 @@ with open(args.credentials_file) as f:
     credentials = json.load(f)
 
 try:
-    api = MythicAPI(args.zone, credentials[args.zone])
-except APIError as err:
+    api = mythic.MythicAPI(args.zone, credentials[args.zone])
+except mythic.APIError as err:
     print("* Error: {}".format(err.message))
     sys.exit(2)
 except KeyError as err:
