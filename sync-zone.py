@@ -403,6 +403,10 @@ for list_record in list_records:
         # Deleting origin NS records may break the zone
         dangerous = True
 
+    if dangerous and args.include_dangerous:
+        print("* Warning: deleting dangerous record:")
+        print(list_record)
+
     if not dangerous or args.include_dangerous:
         delete_records.append(list_record)
 
