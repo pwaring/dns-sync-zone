@@ -345,6 +345,13 @@ parser.add_argument(
     dest="perform_sync",
 )
 parser.add_argument(
+    "-q",
+    "--quiet",
+    help="don't print anything except for errors",
+    action="store_true",
+    dest="quiet",
+)
+parser.add_argument(
     "--strict", help="perform stricter checking", action="store_true"
 )
 parser.add_argument(
@@ -426,11 +433,13 @@ for zone_record in zone_records:
     if not skip_zone_record(zone_record):
         sync_commands.append(" ".join(zone_record.split()))
 
-for cmd in sync_commands:
-    print(cmd)
+if not args.quiet:
+    for cmd in sync_commands:
+        print(cmd)
 
 if args.perform_sync:
     sync_response = api.call(sync_commands)
-    print(sync_response.text)
+    if not args.quiet:
+        print(sync_response.text)
 else:
     print("* Dry run: no action taken")
