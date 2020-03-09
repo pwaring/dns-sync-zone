@@ -317,6 +317,12 @@ parser.add_argument(
     dest="quiet",
 )
 parser.add_argument(
+    "--include-dangerous-records",
+    help="allow modification of all dangerous records",
+    action="store_true",
+    dest="include_dangerous",
+)
+parser.add_argument(
     "--strict", help="perform stricter checking", action="store_true"
 )
 parser.add_argument(
