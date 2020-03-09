@@ -14,7 +14,7 @@ class ValidateError(Exception):
 def is_valid_label(label, strict=True):
     """Checks that label is valid"""
     # Can't be too short or long
-    if not (1 < len(label) <= 63):
+    if not (1 <= len(label) <= 63):
         return False
     if not strict:
         return True
