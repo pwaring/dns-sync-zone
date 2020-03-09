@@ -247,9 +247,20 @@ def validate_zone_record(zone_record, strict=False):
                 return False
 
             fields = len(record_data)
-            if record_type in ["CNAME", "ANAME"]:
+            if record_type in ["CNAME", "ANAME", "NS"]:
                 return (fields == 1) and is_valid_target(
                     record_data[0], strict=strict
+                )
+            if record_type == "SOA":
+                return (
+                    (fields == 7)
+                    and is_valid_target(record_data[0], strict=True)
+                    and is_valid_target(record_data[1], strict=True)
+                    and is_valid_ttl(record_data[2])
+                    and is_valid_ttl(record_data[3])
+                    and is_valid_ttl(record_data[4])
+                    and is_valid_ttl(record_data[5])
+                    and is_valid_ttl(record_data[6])
                 )
             elif record_type == "A":
                 return (fields == 1) and is_valid_ipv4(record_data[0])
