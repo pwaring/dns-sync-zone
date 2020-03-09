@@ -441,7 +441,21 @@ if not args.quiet:
 
 if args.perform_sync:
     sync_response = api.call(sync_commands)
-    if not args.quiet:
+    if sync_response.status_code == 200:
+        if not args.quiet:
+            print(sync_response.text)
+        responses = sync_response.text.splitlines()
+        # This assumes the API replies in same order as requested
+        error = False
+        for a, b in zip(sync_commands, responses):
+            if a != b:
+                print('* Mismatch: "{}" -> "{}"'.format(a, b))
+                error = True
+        if error:
+            sys.exit(1)
+    else:
+        print("* Error:", sync_response.code, sync_response.reason)
         print(sync_response.text)
+        sys.exit(1)
 else:
     print("* Dry run: no action taken")
