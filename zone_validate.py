@@ -31,11 +31,13 @@ def is_valid_label(label, strict=True):
 
 def is_valid_domain(domain, strict=True):
     """Check for validity of domain as specified in RFC1035"""
-    if not (1 < len(domain) <= 255):
+    if not (1 <= len(domain) <= 255):
         return False
+    if domain == ".":
+        # "." is valid in some contexts
+        return True
     if domain.endswith("."):
         domain = domain[:-1]
-    # NB. "." is valid in some contexts
     for label in domain.split("."):
         if not is_valid_label(label, strict=strict):
             return False
