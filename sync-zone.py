@@ -408,7 +408,8 @@ except KeyError as err:
 
 # Get all the existing records
 list_response = api.list()
-list_records = list_response.text.splitlines()
+# rstrip needed as Mythic adds a trailing space to the LIST responses
+list_records = [l.rstrip() for l in list_response.text.splitlines()]
 
 # Create DELETE [record] commands for all existing records returned by LIST,
 # except NS and SOA records
@@ -428,7 +429,8 @@ for delete_record in delete_records:
     delete_commands.append("DELETE " + delete_record)
 
 # Send all the DELETE and new zone entries in one transaction
-sync_commands = delete_commands
+sync_commands = []
+sync_commands.extend(delete_commands)
 for zone_record in zone_records:
     if not skip_zone_record(zone_record):
         sync_commands.append(" ".join(zone_record.split()))
@@ -439,7 +441,21 @@ if not args.quiet:
 
 if args.perform_sync:
     sync_response = api.call(sync_commands)
-    if not args.quiet:
+    if sync_response.status_code == 200:
+        if not args.quiet:
+            print(sync_response.text)
+        responses = sync_response.text.splitlines()
+        # This assumes the API replies in same order as requested
+        error = False
+        for a, b in zip(sync_commands, responses):
+            if a != b:
+                print('* Mismatch: "{}" -> "{}"'.format(a, b))
+                error = True
+        if error:
+            sys.exit(1)
+    else:
+        print("* Error:", sync_response.code, sync_response.reason)
         print(sync_response.text)
+        sys.exit(1)
 else:
     print("* Dry run: no action taken")
