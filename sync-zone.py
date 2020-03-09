@@ -5,9 +5,8 @@ import sys
 import string
 import re
 
-# External modules
-import requests
-
+# Local modules
+from mythic import MythicAPI
 import rfcparser
 
 
@@ -17,39 +16,6 @@ class APIError(Exception):
     def __init__(self, command, message):
         self.command = command
         self.message = message
-
-
-class MythicAPI(object):
-    """Class abstracting Mythic Beasts' Primary DNS API"""
-
-    def __init__(self, domain, password):
-        self.valid = True
-        self.payload = {
-            "domain": args.zone,
-            "password": credentials[args.zone],
-            "command": None,
-        }
-        self.uri = "https://dnsapi.mythic-beasts.com/"
-        response = self.call("LIST")
-        if response.text.startswith("ERR "):
-            error = response.text[4:].strip()
-            self.valid = False
-            raise APIError("LIST", error)
-        else:
-            self._list = response
-
-    def check_valid(self, command=""):
-        if not self.valid:
-            raise APIError(command, "Operation on invalid API access")
-
-    def list(self):
-        self.check_valid()
-        return self._list
-
-    def call(self, commands):
-        self.check_valid()
-        self.payload["command"] = commands
-        return requests.post(self.uri, data=self.payload)
 
 
 def is_valid_label(label, strict=True):
@@ -281,9 +247,20 @@ def validate_zone_record(zone_record, strict=False):
                 return False
 
             fields = len(record_data)
-            if record_type in ["CNAME", "ANAME"]:
+            if record_type in ["CNAME", "ANAME", "NS"]:
                 return (fields == 1) and is_valid_target(
                     record_data[0], strict=strict
+                )
+            if record_type == "SOA":
+                return (
+                    (fields == 7)
+                    and is_valid_target(record_data[0], strict=True)
+                    and is_valid_target(record_data[1], strict=True)
+                    and is_valid_ttl(record_data[2])
+                    and is_valid_ttl(record_data[3])
+                    and is_valid_ttl(record_data[4])
+                    and is_valid_ttl(record_data[5])
+                    and is_valid_ttl(record_data[6])
                 )
             elif record_type == "A":
                 return (fields == 1) and is_valid_ipv4(record_data[0])
@@ -352,6 +329,12 @@ parser.add_argument(
     dest="quiet",
 )
 parser.add_argument(
+    "--include-dangerous-records",
+    help="allow modification of all dangerous records",
+    action="store_true",
+    dest="include_dangerous",
+)
+parser.add_argument(
     "--strict", help="perform stricter checking", action="store_true"
 )
 parser.add_argument(
@@ -371,7 +354,9 @@ elif args.rfc_file:
     try:
         with open(args.rfc_file) as f:
             zone = rfcparser.RFCParser(f)
-        zone_records = zone.records("ADD")
+        zone_records = zone.records(
+            "ADD", include_dangerous=args.include_dangerous
+        )
         if args.zone != zone.domain():
             print("Zonefile origin domain is not for specified zone")
             print(args.zone, "!=", zone.domain())
@@ -415,12 +400,25 @@ list_records = [l.rstrip() for l in list_response.text.splitlines()]
 # except NS and SOA records
 delete_records = []
 
+origins = ["@", args.zone + "."]
 for list_record in list_records:
     record_parts = list_record.split()
     record_type = record_parts[2]
 
-    # Do not delete NS or SOA records as this may break the zone
-    if record_type != "NS" and record_type != "SOA":
+    dangerous = False
+
+    if record_type == "SOA":
+        # Deleting SOA records may break the zone
+        dangerous = True
+    elif record_type == "NS" and record_parts[0] in origins:
+        # Deleting origin NS records may break the zone
+        dangerous = True
+
+    if dangerous and args.include_dangerous:
+        print("* Warning: deleting dangerous record:")
+        print(list_record)
+
+    if not dangerous or args.include_dangerous:
         delete_records.append(list_record)
 
 delete_commands = []

@@ -270,12 +270,23 @@ class RFCParser(object):
 
         return zone
 
-    def records(self, prefix=None):
+    def records(self, prefix=None, include_dangerous=False):
         ret = []
+        origins = ["@"]
+        if self.zone["origin"]:
+            origin = self.zone["origin"]
+            if not origin.endswith("."):
+                origin += "."
+            origins.append(origin)
+
         for rr in self.zone["records"]:
-            if rr[2] in ["SOA", "NS"]:
-                pass
-            else:
+            dangerous = False
+            if rr[2] == "SOA":
+                dangerous = True
+            elif rr[2] == "NS" and rr[0] in origins:
+                dangerous = True
+
+            if not dangerous or include_dangerous:
                 line = " ".join(rr)
                 if prefix:
                     line = "{} {}".format(prefix, line)
