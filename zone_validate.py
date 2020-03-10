@@ -6,9 +6,9 @@ import re
 class ValidateError(Exception):
     """Class for exceptions"""
 
-    def __init__(self, command, message):
-        self.command = command
+    def __init__(self, message, content):
         self.message = message
+        self.content = content
 
 
 def is_valid_label(label, strict=True):
