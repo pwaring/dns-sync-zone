@@ -54,11 +54,13 @@ def is_valid_name(name, strict=True):
 
 def is_valid_target(name, strict=False):
     """Check that the target of a RR is valid"""
+    if not is_valid_domain(name):
+        return False
     if strict and not name.endswith("."):
         print(
             "*** Warning: target {} is missing a terminating dot".format(name)
         )
-    return is_valid_domain(name)
+    return True
 
 
 def is_valid_ttl(ttl):
