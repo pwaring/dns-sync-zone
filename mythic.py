@@ -1,6 +1,15 @@
 # External modules
 import requests
 
+
+class APIError(Exception):
+    """Class for exceptions"""
+
+    def __init__(self, command, message):
+        self.command = command
+        self.message = message
+
+
 class MythicAPI(object):
     """Class abstracting Mythic Beasts' Primary DNS API"""
 

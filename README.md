@@ -29,6 +29,27 @@ intended for `sync-zone.py`.
  * Python 3.x (development is done in 3.6.x). Python 2 is intentionally not supported.
  * [Requests](https://requests.readthedocs.io)
 
+## Unit tests and coverage
+
+Unit tests can be run using:
+
+```
+python3 -m unittest
+```
+
+For a coverage report, install the `coverage` module
+(eg. `python3-coverage` in Debian, or `pip3 install coverage`) and
+run:
+
+```
+python3-coverage run -m unittest
+python3-coverage html
+```
+
+The command is `coverage` if installed using pip.  HTML output is in
+the `htmlcov` directory.
+
+
 ## Limitations
 
 This script assumes that you are using the 'Mythic Beasts nameservers only'
