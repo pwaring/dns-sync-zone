@@ -127,7 +127,7 @@ class RFCParser(object):
 
     def parse_from_string(self, string):
         lines = string.splitlines()
-        tokenized = list()
+        tokenized = []
 
         # tokenize, honouring quoted strings, and strip comments
         for line in lines:
