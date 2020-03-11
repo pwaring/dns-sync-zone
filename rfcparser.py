@@ -106,7 +106,7 @@ class RFCParser(object):
     def __init__(self, source=None):
         if source is None:
             self.zone = None
-        if isinstance(source, str):
+        elif isinstance(source, str):
             self.zone = self.parse_from_string(source)
         else:
             try:
