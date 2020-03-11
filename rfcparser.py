@@ -196,7 +196,10 @@ class RFCParser(object):
             line = " ".join(tokens)
             name = tokens.pop(0)
             if name.upper() == "$ORIGIN":
-                zone["origin"] = tokens.pop(0)
+                origin = tokens.pop(0)
+                if not origin.endswith("."):
+                    origin += "."
+                zone["origin"] = origin
             elif name.upper() == "$INCLUDE":
                 raise RFCParserError("$INCLUDE not supported")
             elif name.upper() == "$TTL":
@@ -263,8 +266,6 @@ class RFCParser(object):
         origins = ["@"]
         if self.zone["origin"]:
             origin = self.zone["origin"]
-            if not origin.endswith("."):
-                origin += "."
             origins.append(origin)
 
         for rr in self.zone["records"]:
