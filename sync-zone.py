@@ -148,7 +148,7 @@ if args.perform_sync:
         if error:
             sys.exit(1)
     else:
-        print("* Error:", sync_response.code, sync_response.reason)
+        print("* Error:", sync_response.status_code, sync_response.reason)
         print(sync_response.text)
         sys.exit(1)
 else:
