@@ -187,7 +187,8 @@ def is_valid_ipv6(address):
         error = "private address"
     elif ip.is_reserved:
         error = "reserved address"
-    elif not ip.is_global:
+    elif not ip.is_global:  # pragma: no cover
+        # Should not be reached.  The selections above cover all bases.
         warning = "unknown address type"
 
     if error:
@@ -306,7 +307,9 @@ def validate_zone_record(zone_record, strict=False):
             elif record_type == "AAAA":
                 return (fields == 1) and is_valid_ipv6(record_data[0])
             elif record_type == "TXT":
-                if fields == 0:
+                if fields == 0:  # pragma: no cover
+                    # Should be caught by the minimum number of
+                    # zone_record_parts check above
                     return False
                 if strict and fields > 1:
                     print("* Warning: TXT record has multiple parts")
