@@ -1,6 +1,7 @@
 # Standard library modules
 import string
 import re
+import ipaddress
 
 
 class ValidateError(Exception):
@@ -117,42 +118,83 @@ def is_valid_mx(preference, exchange):
 
 def is_valid_ipv4(address):
     """Check an IPv4 address for validity"""
-    octets = address.split(".")
-    if len(octets) != 4:
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
         return False
-    for o in octets:
-        try:
-            value = int(o)
-        except ValueError:
-            return False
-        if not (0 <= value <= 255):
-            return False
+    if not isinstance(ip, ipaddress.IPv4Address):
+        return False
+    warning = None
+    if ip.is_loopback:
+        warning = "loopback address"
+    elif ip.is_multicast:
+        warning = "multicast address"
+    elif ip.is_reserved:
+        warning = "reserved address"
+    elif ip.is_link_local:
+        warning = "link-local address"
+    elif ip.is_unspecified:
+        warning = "unspecified address"
+    elif ip.is_private:
+        warning = "private address"
+    elif address.endswith(".0") or address.endswith(".255"):
+        warning = "potential broadcast address"
+
+    if warning:
+        print("*** Warning: {} is a {}".format(address, warning))
+
     return True
 
 
 def is_valid_ipv6(address):
     """Check an IPv6 address for validity"""
-    groups = address.split(":")
-    if len(groups) < 3:
-        # minimum is abcd::1
+    try:
+        ip = ipaddress.ip_address(address)
+    except ValueError:
         return False
-    if len(groups) > 8:
+    if not isinstance(ip, ipaddress.IPv6Address):
         return False
-    gap = False
-    for h in groups:
-        if len(h) == 0:
-            if gap:
-                return False
-            gap = True
-        else:
-            try:
-                value = int(h, base=16)
-            except ValueError:
-                return False
-            if not (0 <= value <= 0xFFFF):
-                return False
-    if len(groups) < 8 and not gap:
+
+    error = None
+    warning = None
+    if ip.is_loopback:
+        error = "loopback address"
+    elif ip.is_multicast:
+        error = "multicast address"
+    elif ip.is_link_local:
+        error = "link-local address"
+    elif ip.is_site_local:
+        error = "deprecated site-local address"
+    elif ip.is_unspecified:
+        error = "unspecified address"
+    elif ip.teredo:
+        warning = "Teredo address"
+    elif ip.sixtofour:
+        warning = "6to4 address"
+    elif ip.ipv4_mapped:
+        warning = "mapped IPv4 address"
+    elif ip in ipaddress.IPv6Network("2001:10::/28"):
+        warning = "ORCHID address"
+    elif ip in ipaddress.IPv6Network("2001:20::/28"):
+        warning = "ORCHIDv2 address"
+    elif ip in ipaddress.IPv6Network("2001:db8::/32"):
+        warning = "documentation address"
+    elif ip in ipaddress.IPv6Network("2001::/23"):
+        warning = "IETF protocol address"
+    elif ip in ipaddress.IPv6Network("100::/64"):
+        error = "discard address"
+    elif ip.is_private:
+        error = "private address"
+    elif ip.is_reserved:
+        error = "reserved address"
+    elif not ip.is_global:
+        warning = "unknown address type"
+
+    if error:
+        print("*** Error: {} is a {}".format(address, error))
         return False
+    if warning:
+        print("*** Warning: {} is a {}".format(address, warning))
     return True
 
 
