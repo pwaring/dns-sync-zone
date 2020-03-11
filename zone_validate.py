@@ -266,7 +266,7 @@ def validate_zone_record(zone_record, strict=False):
             elif record_type == "TXT":
                 if fields == 0:
                     return False
-                if fields > 1 and strict:
+                if strict and fields > 1:
                     print("* Warning: TXT record has multiple parts")
                     print(zone_record)
                 return True
