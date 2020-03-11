@@ -1,3 +1,4 @@
+import zone_validate
 
 
 #
@@ -114,21 +115,10 @@ class RFCParser(object):
                 raise RFCParserError(
                     "Argument is neither string nor file object"
                 )
-                print("", file=sys.stderror)
-                raise
 
     @staticmethod
     def is_valid_ttl(ttl):
-        """Check that ttl value is valid (ie. positive signed 32 bit number)"""
-        if len(ttl) == 0:
-            return False
-        match = re.search(r"[^0-9]", ttl)
-        if match is not None:
-            return False
-        value = int(ttl)
-        if not (0 <= value < 2 ** 31):
-            return False
-        return True
+        return zone_validate.is_valid_ttl(ttl)
 
     @staticmethod
     def is_valid_type(name):
