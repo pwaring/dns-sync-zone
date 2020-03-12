@@ -235,8 +235,8 @@ class RFCParser(object):
                     next = tokens.pop(0)
                     if next.upper() == "IN":
                         # ignore default "IN" class
-                        pass
-                    elif self.is_valid_type(next):
+                        next = tokens.pop(0)
+                    if self.is_valid_type(next):
                         t.append(next)
                     else:
                         raise RFCParserError("Unknown or missing type", line)
