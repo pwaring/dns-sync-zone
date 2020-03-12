@@ -185,9 +185,6 @@ class RFCParser(object):
                 r = []
         if continuation:
             raise RFCParserError("Unclosed parentheses")
-        else:
-            if r:
-                records.append(r)
 
         # Parse RR lines
         rr = []
