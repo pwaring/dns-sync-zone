@@ -61,14 +61,13 @@ pipenv run coverage html
 
 This script assumes that you are using the 'Mythic Beasts nameservers only'
 template and that the SOA and NS records for the zone already exist. The script
-will not allow you to upload new SOA and NS records, nor will it remove any
-existing SOA and NS records.
+will not allow you to upload new SOA and NS records for `@`, nor will it remove any
+existing SOA and NS records for `@` (NS records for subdomains are supported).
 
 ## Support
 
 If you are having trouble using the script, or have run across a bug, please open
-an issue on GitHub. This support route is free and provided in the author's
-spare time.
+an issue on GitHub.
 
 ## Contributions
 
