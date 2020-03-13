@@ -70,9 +70,6 @@ If you are having trouble using the script, or have run across a bug, please ope
 an issue on GitHub. This support route is free and provided in the author's
 spare time.
 
-Paid support is available directly from the author. Please email them at
-paul@phpdeveloper.org.uk for details.
-
 ## Contributions
 
 Contributions are welcome using the following mechanisms:
