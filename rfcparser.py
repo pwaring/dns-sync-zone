@@ -1,5 +1,4 @@
-import sys
-import re
+import zone_validate
 
 
 #
@@ -107,7 +106,7 @@ class RFCParser(object):
     def __init__(self, source=None):
         if source is None:
             self.zone = None
-        if isinstance(source, str):
+        elif isinstance(source, str):
             self.zone = self.parse_from_string(source)
         else:
             try:
@@ -116,21 +115,10 @@ class RFCParser(object):
                 raise RFCParserError(
                     "Argument is neither string nor file object"
                 )
-                print("", file=sys.stderror)
-                raise
 
     @staticmethod
     def is_valid_ttl(ttl):
-        """Check that ttl value is valid (ie. positive signed 32 bit number)"""
-        if len(ttl) == 0:
-            return False
-        match = re.search(r"[^0-9]", ttl)
-        if match is not None:
-            return False
-        value = int(ttl)
-        if not (0 <= value < 2 ** 31):
-            return False
-        return True
+        return zone_validate.is_valid_ttl(ttl)
 
     @staticmethod
     def is_valid_type(name):
@@ -139,7 +127,7 @@ class RFCParser(object):
 
     def parse_from_string(self, string):
         lines = string.splitlines()
-        tokenized = list()
+        tokenized = []
 
         # tokenize, honouring quoted strings, and strip comments
         for line in lines:
@@ -197,9 +185,6 @@ class RFCParser(object):
                 r = []
         if continuation:
             raise RFCParserError("Unclosed parentheses")
-        else:
-            if r:
-                records.append(r)
 
         # Parse RR lines
         rr = []
@@ -208,7 +193,10 @@ class RFCParser(object):
             line = " ".join(tokens)
             name = tokens.pop(0)
             if name.upper() == "$ORIGIN":
-                zone["origin"] = tokens.pop(0)
+                origin = tokens.pop(0)
+                if not origin.endswith("."):
+                    origin += "."
+                zone["origin"] = origin
             elif name.upper() == "$INCLUDE":
                 raise RFCParserError("$INCLUDE not supported")
             elif name.upper() == "$TTL":
@@ -247,8 +235,8 @@ class RFCParser(object):
                     next = tokens.pop(0)
                     if next.upper() == "IN":
                         # ignore default "IN" class
-                        pass
-                    elif self.is_valid_type(next):
+                        next = tokens.pop(0)
+                    if self.is_valid_type(next):
                         t.append(next)
                     else:
                         raise RFCParserError("Unknown or missing type", line)
@@ -275,8 +263,6 @@ class RFCParser(object):
         origins = ["@"]
         if self.zone["origin"]:
             origin = self.zone["origin"]
-            if not origin.endswith("."):
-                origin += "."
             origins.append(origin)
 
         for rr in self.zone["records"]:
@@ -298,76 +284,3 @@ class RFCParser(object):
         if d.endswith("."):
             d = d[:-1]
         return d
-
-
-def tryzone(s):
-    try:
-        z = RFCParser(s)
-    except RFCParserError as err:
-        if err.line:
-            print(f"Error: {err.message} in {err.line}")
-        else:
-            print(f"Error: {err.message}")
-    else:
-        import pprint
-
-        pprint.pprint(z.records("ADD"))
-        breakpoint()
-
-
-def main():
-    # test code with classic example from RFC1035
-
-    tryzone(
-        """
-@   IN  SOA     VENERA      Action\.domains (
-                                 20     ; SERIAL
-                                 7200   ; REFRESH
-                                 600    ; RETRY
-                                 3600000; EXPIRE
-                                 60)    ; MINIMUM
-
-        NS      A.ISI.EDU.
-        NS      VENERA
-        NS      VAXA
-        MX      10      VENERA
-        MX      20      VAXA
-
-A       A       26.3.0.103
-
-VENERA  A       10.1.0.52
-        A       128.9.0.32
-
-VAXA    A       10.2.0.27
-        A       128.9.0.33
-"""
-    )
-
-    tryzone(
-        """
-$ORIGIN example.com.     ; designates the start of this zone file in the namespace
-$TTL 3600                ; default expiration time of all resource records without their own TTL value
-example.com.  IN  SOA   ns.example.com. username.example.com. ( 2007120710 1d 2h 4w 1h )
-example.com.  IN  300 NS    ns                    ; ns.example.com is a nameserver for example.com
-example.com.  IN  NS    ns.somewhere.example. ; ns.somewhere.example is a backup nameserver for example.com
-example.com.  IN  MX    10 mail.example.com.  ; mail.example.com is the mailserver for example.com
-@             IN  MX    20 mail2.example.com. ; equivalent to above line, "@" represents zone origin
-@             IN  MX    50 mail3              ; equivalent to above line, but using a relative host name
-example.com.  IN  A     192.0.2.1             ; IPv4 address for example.com
-              IN  AAAA  2001:db8:10::1        ; IPv6 address for example.com
-ns            IN  A     192.0.2.2             ; IPv4 address for ns.example.com
-              IN  AAAA  2001:db8:10::2        ; IPv6 address for ns.example.com
-www           IN  CNAME example.com.          ; www.example.com is an alias for example.com
-wwwtest       IN  CNAME www                   ; wwwtest.example.com is another alias for www.example.com
-mail          IN  A     192.0.2.3             ; IPv4 address for mail.example.com
-mail2         IN  A     192.0.2.4             ; IPv4 address for mail2.example.com
-mail3         IN  A     192.0.2.5             ; IPv4 address for mail3.example.com
-"""
-    )
-
-    with open("/tmp/codethink.co.uk") as f:
-        tryzone(f)
-
-
-if __name__ == "__main__":
-    main()
