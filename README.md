@@ -49,6 +49,13 @@ python3-coverage html
 The command is `coverage` if installed using pip.  HTML output is in
 the `htmlcov` directory.
 
+Running via pipenv:
+
+```
+pipenv install --dev
+pipenv run coverage run -m unittest
+pipenv run coverage html
+```
 
 ## Limitations
 
