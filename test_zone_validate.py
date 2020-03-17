@@ -104,6 +104,40 @@ class TextDNSValidate(unittest.TestCase):
             self.assertTrue(V.is_valid_target("test.domain.", strict=True))
         self.assertEqual("", f.getvalue())
 
+    def test_is_valid_rname_lax(self):
+        f = io.StringIO()
+        with redirect_stdout(f):
+            self.assertTrue(V.is_valid_rname("test.domain"))
+        self.assertEqual("", f.getvalue())
+
+    def test_is_valid_rname_slash_good(self):
+        f = io.StringIO()
+        with redirect_stdout(f):
+            self.assertTrue(
+                V.is_valid_rname(r"test\.user.domain.name", strict=True)
+            )
+        self.assertEqual(
+            "*** Warning: target test\\.user.domain.name is "
+            "missing a terminating dot\n",
+            f.getvalue(),
+        )
+
+    def test_is_valid_rname_slash_bad(self):
+        f = io.StringIO()
+        with redirect_stdout(f):
+            self.assertFalse(
+                V.is_valid_rname(r"test\.user.1domain", strict=True)
+            )
+        self.assertEqual(
+            "", f.getvalue(),
+        )
+
+    def test_is_valid_rname_strict_good(self):
+        f = io.StringIO()
+        with redirect_stdout(f):
+            self.assertTrue(V.is_valid_rname("test.domain.", strict=True))
+        self.assertEqual("", f.getvalue())
+
     def test_is_valid_ttl_empty(self):
         self.assertFalse(V.is_valid_ttl(""))
 
@@ -529,6 +563,13 @@ class TextDNSValidate(unittest.TestCase):
                 V.validate_zone_record(
                     "DELETE @ 65535 SOA ns.example.com."
                     " hostmaster.example.com."
+                    " 86400 86400 86400 86400 86400"
+                )
+            )
+            self.assertTrue(
+                V.validate_zone_record(
+                    "DELETE @ 65535 SOA ns.example.com."
+                    " host\\.master.example.com."
                     " 86400 86400 86400 86400 86400"
                 )
             )
