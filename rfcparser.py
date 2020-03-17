@@ -103,7 +103,8 @@ class RFCParser(object):
 
     """
 
-    def __init__(self, source=None):
+    def __init__(self, source=None, validate_records=True):
+        self.validate_records = validate_records
         if source is None:
             self.zone = None
         elif isinstance(source, str):
@@ -249,6 +250,11 @@ class RFCParser(object):
                     raise RFCParserError("Unknown or missing type", line)
 
                 t.extend(tokens)
+                if (
+                    self.validate_records
+                    and not zone_validate.validate_tokens(t, line)
+                ):
+                    raise RFCParserError("Record failed validation", line)
                 rr.append(t)
 
         zone["records"] = rr
