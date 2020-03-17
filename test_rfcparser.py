@@ -72,7 +72,7 @@ VAXA    A       10.2.0.27
 
     def test_rfcparser_parser_string(self):
         try:
-            r = rfcparser.RFCParser(self.rfc1035zone)
+            r = rfcparser.RFCParser(self.rfc1035zone, validate_records=False)
         except rfcparser.RFCParserError as exc:  # pragma: no cover
             self.fail(
                 "RFCParser() raised RFCParserError: {}".format(exc.message)
@@ -116,7 +116,7 @@ VAXA    A       10.2.0.27
     def test_rfcparser_parser_stream(self):
         try:
             with io.StringIO(self.rfc1035zone) as f:
-                r = rfcparser.RFCParser(f)
+                r = rfcparser.RFCParser(f, validate_records=False)
         except rfcparser.RFCParserError as exc:  # pragma: no cover
             self.fail(
                 "RFCParser() raised RFCParserError: {}".format(exc.message)
@@ -164,7 +164,7 @@ $ORIGIN example.com.     ; designates the start of this zone file in the namespa
 $TTL 3600                ; default expiration time of all resource records without their own TTL value
 example.com.  IN  SOA   ns.example.com. username.example.com. (
                         2007120710
-                        1d 2h 4w 1h )
+                        86400 7200 2419200 3600 )
 example.com.  IN  300 NS    ns                    ; ns.example.com is a nameserver for example.com
 example.com.  IN  NS    ns.somewhere.example. ; ns.somewhere.example is a backup nameserver for example.com
 example.com.  IN  MX    10 mail.example.com.  ; mail.example.com is the mailserver for example.com
@@ -183,7 +183,7 @@ mail3\tIN\tA\t192.0.2.5\t; IPv4 address for mail3.example.com
 """
 
         try:
-            r = rfcparser.RFCParser(zone)
+            r = rfcparser.RFCParser(zone, validate_records=False)
         except rfcparser.RFCParserError as exc:  # pragma: no cover
             self.fail(
                 "RFCParser() raised RFCParserError: {}".format(exc.message)
@@ -205,10 +205,10 @@ mail3\tIN\tA\t192.0.2.5\t; IPv4 address for mail3.example.com
                     "ns.example.com.",
                     "username.example.com.",
                     "2007120710",
-                    "1d",
-                    "2h",
-                    "4w",
-                    "1h",
+                    "86400",
+                    "7200",
+                    "2419200",
+                    "3600",
                 ],
                 ["example.com.", "300", "NS", "ns"],
                 ["example.com.", "3600", "NS", "ns.somewhere.example."],
@@ -372,8 +372,17 @@ $TTL 3600
             _ = rfcparser.RFCParser(zone)
         self.assertEqual(cm.exception.message, "Missing origin")
 
+    def test_rfcparser_parser_string_fail_validation(self):
+        zone = """
+$TTL 3600
+@       SOA     ns.example.com. host\\.master.example.com. 1 2
+"""
+        with self.assertRaises(rfcparser.RFCParserError) as cm:
+            _ = rfcparser.RFCParser(zone)
+        self.assertEqual(cm.exception.message, "Record failed validation")
+
     def test_rfcparser_parser_record_method(self):
-        r = rfcparser.RFCParser(self.rfc1035zone)
+        r = rfcparser.RFCParser(self.rfc1035zone, validate_records=False)
 
         self.assertEqual(
             [
@@ -422,5 +431,5 @@ $TTL 3600
         )
 
     def test_rfcparser_parser_domain_method(self):
-        r = rfcparser.RFCParser(self.rfc1035zone)
+        r = rfcparser.RFCParser(self.rfc1035zone, validate_records=False)
         self.assertEqual("example.net", r.domain())
