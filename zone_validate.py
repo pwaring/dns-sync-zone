@@ -227,6 +227,83 @@ def tokenize(line):
     return tokens
 
 
+def validate_tokens(tokens, record_text, strict=False):
+    (record_hostname, record_ttl, record_type, *record_data) = tokens
+
+    record_type = record_type.upper()
+    strict_name = record_type not in ["TXT", "SRV"]
+
+    if not is_valid_ttl(record_ttl):
+        return False
+
+    if not is_valid_name(record_hostname, strict_name):
+        return False
+
+    fields = len(record_data)
+    if record_type in ["CNAME", "ANAME", "NS"]:
+        return (fields == 1) and is_valid_target(record_data[0], strict=strict)
+    elif record_type == "SOA":
+        return (
+            (fields == 7)
+            and is_valid_target(record_data[0], strict=True)
+            and is_valid_target(record_data[1], strict=True)
+            and is_valid_ttl(record_data[2])
+            and is_valid_ttl(record_data[3])
+            and is_valid_ttl(record_data[4])
+            and is_valid_ttl(record_data[5])
+            and is_valid_ttl(record_data[6])
+        )
+    elif record_type == "A":
+        return (fields == 1) and is_valid_ipv4(record_data[0])
+    elif record_type == "AAAA":
+        return (fields == 1) and is_valid_ipv6(record_data[0])
+    elif record_type == "TXT":
+        if fields == 0:  # pragma: no cover
+            # Should be caught by the minimum number of
+            # zone_record_parts check above
+            return False
+        if strict and fields > 1:
+            print("* Warning: TXT record has multiple parts")
+            print(record_text)
+        return True
+    elif record_type == "MX":
+        if fields != 2:
+            return False
+        priority, host = record_data
+        return is_valid_mx(priority, host)
+    elif record_type == "SRV":
+        if fields != 4:
+            return False
+        priority, weight, port, target = record_data
+        return (
+            is_valid_uint16(priority)
+            and is_valid_uint16(weight)
+            and is_valid_uint16(port)
+            and is_valid_target(target, strict=strict)
+            and record_hostname.startswith("_")
+        )
+    elif record_type == "CAA":
+        if fields != 3:
+            return False
+        flags, tag, value = record_data
+        if tag.lower() not in ["issue", "issuewild", "iodef"]:
+            return False
+        # not checking value, which is arbitrary text
+        return is_valid_uint8(flags)
+    elif record_type == "SSHFP":
+        if fields != 3:
+            return False
+        algorithm, fingerprint_type, fingerprint = record_data
+        return (
+            is_valid_uint8(algorithm)
+            and is_valid_uint8(fingerprint_type)
+            and is_valid_hex(fingerprint)
+        )
+    else:
+        print("Cannot validate type {}".format(record_type))
+        return not strict
+
+
 def skip_zone_record(zone_record):
     """Whether a zone record should be skipped or not.
 
@@ -253,7 +330,6 @@ def validate_zone_record(zone_record, strict=False):
     :returns: True if the record appears valid, false otherwise.
     """
     valid_commands = ["ADD", "DELETE", "REPLACE"]
-    non_strict_types = ["TXT", "SRV"]
 
     if skip_zone_record(zone_record):
         return True
@@ -268,88 +344,11 @@ def validate_zone_record(zone_record, strict=False):
 
         if len(zone_record_parts) >= 5:
             # First four fields are the same for all records
-            (
-                record_command,
-                record_hostname,
-                record_ttl,
-                record_type,
-                *record_data,
-            ) = zone_record_parts
-            record_type = record_type.upper()
-
-            strict_name = record_type not in non_strict_types
+            record_command = zone_record_parts.pop(0)
 
             if record_command not in valid_commands:
                 return False
-            if not is_valid_ttl(record_ttl):
-                return False
-            if not is_valid_name(record_hostname, strict_name):
-                return False
-
-            fields = len(record_data)
-            if record_type in ["CNAME", "ANAME", "NS"]:
-                return (fields == 1) and is_valid_target(
-                    record_data[0], strict=strict
-                )
-            if record_type == "SOA":
-                return (
-                    (fields == 7)
-                    and is_valid_target(record_data[0], strict=True)
-                    and is_valid_target(record_data[1], strict=True)
-                    and is_valid_ttl(record_data[2])
-                    and is_valid_ttl(record_data[3])
-                    and is_valid_ttl(record_data[4])
-                    and is_valid_ttl(record_data[5])
-                    and is_valid_ttl(record_data[6])
-                )
-            elif record_type == "A":
-                return (fields == 1) and is_valid_ipv4(record_data[0])
-            elif record_type == "AAAA":
-                return (fields == 1) and is_valid_ipv6(record_data[0])
-            elif record_type == "TXT":
-                if fields == 0:  # pragma: no cover
-                    # Should be caught by the minimum number of
-                    # zone_record_parts check above
-                    return False
-                if strict and fields > 1:
-                    print("* Warning: TXT record has multiple parts")
-                    print(zone_record)
-                return True
-            elif record_type == "MX":
-                if fields != 2:
-                    return False
-                priority, host = record_data
-                return is_valid_mx(priority, host)
-            elif record_type == "SRV":
-                if fields != 4:
-                    return False
-                priority, weight, port, target = record_data
-                return (
-                    is_valid_uint16(priority)
-                    and is_valid_uint16(weight)
-                    and is_valid_uint16(port)
-                    and is_valid_target(target, strict=strict)
-                    and record_hostname.startswith("_")
-                )
-            elif record_type == "CAA":
-                if fields != 3:
-                    return False
-                flags, tag, value = record_data
-                if tag.lower() not in ["issue", "issuewild", "iodef"]:
-                    return False
-                # not checking value, which is arbitrary text
-                return is_valid_uint8(flags)
-            elif record_type == "SSHFP":
-                if fields != 3:
-                    return False
-                algorithm, fingerprint_type, fingerprint = record_data
-                return (
-                    is_valid_uint8(algorithm)
-                    and is_valid_uint8(fingerprint_type)
-                    and is_valid_hex(fingerprint)
-                )
             else:
-                print("Cannot validate type {}".format(record_type))
-                return not strict
-
-    return False
+                return validate_tokens(zone_record_parts, zone_record, strict)
+        else:
+            return False
