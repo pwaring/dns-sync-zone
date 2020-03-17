@@ -64,6 +64,22 @@ def is_valid_target(name, strict=False):
     return True
 
 
+def is_valid_rname(name, strict=False):
+    """Check that the RNAME part of an SOA RR is valid"""
+    # split at first unescaped dot
+    match = re.search(r"^(.+?)(?<!\\)\.(.*)$", name)
+    if match:
+        # ignore first element (local mailbox)
+        domain = match.group(2)
+        if not is_valid_domain(domain):
+            return False
+    if strict and not name.endswith("."):
+        print(
+            "*** Warning: target {} is missing a terminating dot".format(name)
+        )
+    return True
+
+
 def is_valid_ttl(ttl):
     """Check that ttl value is valid (ie. positive signed 32 bit number)"""
     if len(ttl) == 0:
@@ -246,7 +262,7 @@ def validate_tokens(tokens, record_text, strict=False):
         return (
             (fields == 7)
             and is_valid_target(record_data[0], strict=True)
-            and is_valid_target(record_data[1], strict=True)
+            and is_valid_rname(record_data[1], strict=True)
             and is_valid_ttl(record_data[2])
             and is_valid_ttl(record_data[3])
             and is_valid_ttl(record_data[4])
