@@ -35,6 +35,11 @@ parser.add_argument(
     "--strict", help="perform stricter checking", action="store_true"
 )
 parser.add_argument(
+    "--diffs",
+    help="only delete/add records if there is a change",
+    action="store_true",
+)
+parser.add_argument(
     "--credentials-file", help="path to credentials file", required=True
 )
 parser.add_argument(
@@ -129,18 +134,44 @@ for list_record in list_records:
                 if tuple in delete_records:
                     del delete_records[tuple]
 
-delete_commands = []
+add_records = OrderedDict()
+other_commands = []
+for zone_record in zone_records:
+    if not zone_validate.skip_zone_record(zone_record):
+        record_parts = zone_record.split()
+        command, record_name, record_ttl, record_type, *_ = record_parts
+        if command == "ADD":
+            add_records.setdefault((record_name, record_type), []).append(
+                " ".join(record_parts[1:])
+            )
+        else:
+            other_commands.append(" ".join(zone_record.split()))
 
+add_commands = []
+for key, add_record_list in add_records.items():
+    adding = True
+    if args.diffs:
+        if key in delete_records:
+            if sorted(add_record_list) == sorted(delete_records[key]):
+                # If we would be ADD-ing exactly what we are DELETE-ing
+                # don't do either.
+                adding = False
+                del delete_records[key]
+
+    if adding:
+        for add_record in add_record_list:
+            add_commands.append("ADD " + add_record)
+
+delete_commands = []
 for delete_record_list in delete_records.values():
     for delete_record in delete_record_list:
         delete_commands.append("DELETE " + delete_record)
 
-# Send all the DELETE and new zone entries in one transaction
+# Send all the commands in one transaction
 sync_commands = []
 sync_commands.extend(delete_commands)
-for zone_record in zone_records:
-    if not zone_validate.skip_zone_record(zone_record):
-        sync_commands.append(" ".join(zone_record.split()))
+sync_commands.extend(add_commands)
+sync_commands.extend(other_commands)
 
 if not args.quiet:
     for cmd in sync_commands:
