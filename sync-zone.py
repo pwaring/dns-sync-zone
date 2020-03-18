@@ -2,6 +2,7 @@
 import argparse
 import json
 import sys
+from collections import OrderedDict
 
 # Local modules
 import mythic
@@ -94,19 +95,22 @@ list_records = [l.rstrip() for l in list_response.text.splitlines()]
 
 # Create DELETE [record] commands for all existing records returned by LIST,
 # except NS and SOA records
-delete_records = []
+
+# This is an ordered dict of lists. The side effect of this is to
+# group together records with the same hostname + type combination.
+delete_records = OrderedDict()
 
 origins = ["@", args.zone + "."]
 for list_record in list_records:
     record_parts = list_record.split()
-    record_type = record_parts[2]
+    record_name, record_ttl, record_type, *_ = record_parts
 
     dangerous = False
 
     if record_type == "SOA":
         # Deleting SOA records may break the zone
         dangerous = True
-    elif record_type == "NS" and record_parts[0] in origins:
+    elif record_type == "NS" and record_name in origins:
         # Deleting origin NS records may break the zone
         dangerous = True
 
@@ -115,12 +119,21 @@ for list_record in list_records:
         print(list_record)
 
     if not dangerous or args.include_dangerous:
-        delete_records.append(list_record)
+        delete_records.setdefault((record_name, record_type), []).append(
+            list_record
+        )
+        if record_type == "ANAME":
+            # This works because of the ordering of the records
+            # that we get from Mythic
+            for tuple in [(record_name, "A"), (record_name, "AAAA")]:
+                if tuple in delete_records:
+                    del delete_records[tuple]
 
 delete_commands = []
 
-for delete_record in delete_records:
-    delete_commands.append("DELETE " + delete_record)
+for delete_record_list in delete_records.values():
+    for delete_record in delete_record_list:
+        delete_commands.append("DELETE " + delete_record)
 
 # Send all the DELETE and new zone entries in one transaction
 sync_commands = []
