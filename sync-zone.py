@@ -2,6 +2,7 @@
 import argparse
 import json
 import sys
+from collections import OrderedDict
 
 # Local modules
 import mythic
@@ -32,6 +33,11 @@ parser.add_argument(
 )
 parser.add_argument(
     "--strict", help="perform stricter checking", action="store_true"
+)
+parser.add_argument(
+    "--diffs",
+    help="only delete/add records if there is a change",
+    action="store_true",
 )
 parser.add_argument(
     "--credentials-file", help="path to credentials file", required=True
@@ -94,19 +100,22 @@ list_records = [l.rstrip() for l in list_response.text.splitlines()]
 
 # Create DELETE [record] commands for all existing records returned by LIST,
 # except NS and SOA records
-delete_records = []
+
+# This is an ordered dict of lists. The side effect of this is to
+# group together records with the same hostname + type combination.
+delete_records = OrderedDict()
 
 origins = ["@", args.zone + "."]
 for list_record in list_records:
     record_parts = list_record.split()
-    record_type = record_parts[2]
+    record_name, record_ttl, record_type, *_ = record_parts
 
     dangerous = False
 
     if record_type == "SOA":
         # Deleting SOA records may break the zone
         dangerous = True
-    elif record_type == "NS" and record_parts[0] in origins:
+    elif record_type == "NS" and record_name in origins:
         # Deleting origin NS records may break the zone
         dangerous = True
 
@@ -115,19 +124,54 @@ for list_record in list_records:
         print(list_record)
 
     if not dangerous or args.include_dangerous:
-        delete_records.append(list_record)
+        delete_records.setdefault((record_name, record_type), []).append(
+            list_record
+        )
+        if record_type == "ANAME":
+            # This works because of the ordering of the records
+            # that we get from Mythic
+            for tuple in [(record_name, "A"), (record_name, "AAAA")]:
+                if tuple in delete_records:
+                    del delete_records[tuple]
 
-delete_commands = []
-
-for delete_record in delete_records:
-    delete_commands.append("DELETE " + delete_record)
-
-# Send all the DELETE and new zone entries in one transaction
-sync_commands = []
-sync_commands.extend(delete_commands)
+add_records = OrderedDict()
+other_commands = []
 for zone_record in zone_records:
     if not zone_validate.skip_zone_record(zone_record):
-        sync_commands.append(" ".join(zone_record.split()))
+        record_parts = zone_record.split()
+        command, record_name, record_ttl, record_type, *_ = record_parts
+        if command == "ADD":
+            add_records.setdefault((record_name, record_type), []).append(
+                " ".join(record_parts[1:])
+            )
+        else:
+            other_commands.append(" ".join(zone_record.split()))
+
+add_commands = []
+for key, add_record_list in add_records.items():
+    adding = True
+    if args.diffs:
+        if key in delete_records:
+            if sorted(add_record_list) == sorted(delete_records[key]):
+                # If we would be ADD-ing exactly what we are DELETE-ing
+                # don't do either.
+                adding = False
+                del delete_records[key]
+
+    if adding:
+        for add_record in add_record_list:
+            add_commands.append("ADD " + add_record)
+
+delete_commands = []
+for delete_record_list in delete_records.values():
+    for delete_record in delete_record_list:
+        delete_commands.append("DELETE " + delete_record)
+
+# Send all the commands in one transaction
+sync_commands = []
+sync_commands.extend(delete_commands)
+sync_commands.extend(add_commands)
+sync_commands.extend(other_commands)
 
 if not args.quiet:
     for cmd in sync_commands:
