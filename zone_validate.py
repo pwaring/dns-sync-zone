@@ -50,6 +50,11 @@ def is_valid_name(name, strict=True):
     if name in ["@", "*"]:
         # Special cases
         return True
+
+    if name[0:2] == "*.":
+        # Remove the wildcard for validation purposes, then check the remaining name
+        name = name[2:]
+
     return is_valid_domain(name, strict=strict)
 
 
