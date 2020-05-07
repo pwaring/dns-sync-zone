@@ -19,6 +19,12 @@ parser.add_argument(
     dest="perform_sync",
 )
 parser.add_argument(
+    "--validate-only",
+    help="validate only: validate zone record but do not perform any API requests",
+    action="store_true",
+    dest="validate_only",
+)
+parser.add_argument(
     "-q",
     "--quiet",
     help="don't print anything except for errors",
@@ -80,6 +86,10 @@ for zone_record in zone_records:
         print(zone_record)
         sys.exit(1)
 
+# If we only want to validate the records, stop now before any API
+# requests are made and authentication is required
+if args.validate_only:
+    sys.exit(0)
 
 with open(args.credentials_file) as f:
     credentials = json.load(f)
