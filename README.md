@@ -13,6 +13,9 @@ performed in a single transaction.
 
 ## Usage
 
+Please use a specific release of the software as the `master` branch is not
+guaranteed to be stable.
+
 For help, run `./sync-zone.py -h`, which will print all the options.
 
 Running via `pipenv`:
