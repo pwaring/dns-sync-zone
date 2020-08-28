@@ -252,7 +252,7 @@ def validate_tokens(tokens, record_text, strict=False):
     (record_hostname, record_ttl, record_type, *record_data) = tokens
 
     record_type = record_type.upper()
-    strict_name = record_type not in ["TXT", "SRV"]
+    strict_name = record_type not in ["TXT", "SRV", "CNAME"]
 
     if not is_valid_ttl(record_ttl):
         return False

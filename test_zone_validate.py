@@ -474,6 +474,7 @@ class TextDNSValidate(unittest.TestCase):
 
     def test_validate_zone_record_nonstrict_hostname(self):
         self.assertTrue(V.validate_zone_record("ADD _host 10 TXT 12.13.24.15"))
+        self.assertTrue(V.validate_zone_record("ADD _host 10 CNAME example.com."))
         self.assertTrue(
             V.validate_zone_record("ADD _host 10 SRV 0 100 88 testsrv")
         )
