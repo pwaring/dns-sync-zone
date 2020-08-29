@@ -21,7 +21,7 @@ For help, run `./sync-zone.py -h`, which will print all the options.
 Running via `pipenv`:
 
 ```
-pipenv run python3 -- ./sync-zone.py --credentials-file credentials.json --zone example.org --zone-file zones/example.org
+pipenv run python3 -- ./sync-zone.py --credentials-file credentials.json --zone example.org --rfc-file zones/example.org
 ```
 
 You must pass `--` to `pipenv` otherwise it will consume all the arguments
