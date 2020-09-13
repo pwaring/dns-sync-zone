@@ -11,49 +11,65 @@ import zone_validate
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument(
+subparsers = parser.add_subparsers(dest = 'command_name')
+
+# parser for the 'sync' command
+parser_sync = subparsers.add_parser('sync', help = 'sync zone file')
+parser_sync.add_argument(
     "-n",
     "--dry-run",
     help="dry run: check commands but do not perform any actions",
     action="store_false",
     dest="perform_sync",
 )
-parser.add_argument(
-    "--validate-only",
-    help="validate only: validate zone record but do not perform any API requests",
-    action="store_true",
-    dest="validate_only",
-)
-parser.add_argument(
+parser_sync.add_argument(
     "-q",
     "--quiet",
     help="don't print anything except for errors",
     action="store_true",
     dest="quiet",
 )
-parser.add_argument(
+parser_sync.add_argument(
     "--include-dangerous-records",
     help="allow modification of all dangerous records",
     action="store_true",
     dest="include_dangerous",
 )
-parser.add_argument(
+parser_sync.add_argument(
     "--strict", help="perform stricter checking", action="store_true"
 )
-parser.add_argument(
+parser_sync.add_argument(
     "--diffs",
     help="only delete/add records if there is a change",
     action="store_true",
 )
-parser.add_argument(
+parser_sync.add_argument(
     "--credentials-file", help="path to credentials file", required=True
 )
-parser.add_argument(
+parser_sync.add_argument(
     "--zone", help="name of zone (e.g. example.org)", required=True
 )
-parser.add_argument(
+parser_sync.add_argument(
     "--rfc-file", help="path to bind-style zone file", required=True
 )
+
+parser_validate = subparsers.add_parser('validate', help = 'validate zone file')
+parser_validate.add_argument(
+    "--include-dangerous-records",
+    help="allow modification of all dangerous records",
+    action="store_true",
+    dest="include_dangerous",
+)
+parser_validate.add_argument(
+    "--strict", help="perform stricter checking", action="store_true"
+)
+parser_validate.add_argument(
+    "--zone", help="name of zone (e.g. example.org)", required=True
+)
+parser_validate.add_argument(
+    "--rfc-file", help="path to bind-style zone file", required=True
+)
+
 args = parser.parse_args()
 
 try:
@@ -82,7 +98,7 @@ for zone_record in zone_records:
 
 # If we only want to validate the records, stop now before any API
 # requests are made and authentication is required
-if args.validate_only:
+if args.command_name == 'validate':
     sys.exit(0)
 
 with open(args.credentials_file) as f:
