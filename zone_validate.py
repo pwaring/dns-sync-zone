@@ -26,7 +26,7 @@ def is_valid_label(label, strict=True):
     if label.endswith("-"):
         return False
     # Check for forbidden characters
-    match = re.search(r"[^a-zA-Z0-9-]", label)
+    match = re.search(r"[^a-zA-Z0-9-_]", label)
     return match is None
 
 

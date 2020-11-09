@@ -23,7 +23,6 @@ class TextDNSValidate(unittest.TestCase):
         self.assertFalse(V.is_valid_label("zone-"))
 
     def test_is_valid_label_forbidden(self):
-        self.assertFalse(V.is_valid_label("_tcp"))
         self.assertFalse(V.is_valid_label("test.local"))
 
     def test_is_valid_label_not_strict(self):
@@ -64,10 +63,6 @@ class TextDNSValidate(unittest.TestCase):
 
     def test_is_valid_domain_sole_dot(self):
         self.assertTrue(V.is_valid_domain("."))
-
-    def test_is_valid_domain_strictness(self):
-        self.assertFalse(V.is_valid_domain("_test.test."))
-        self.assertTrue(V.is_valid_domain("_test.test.", strict=False))
 
     def test_is_valid_name_specials(self):
         self.assertTrue(V.is_valid_name("@"))
@@ -470,7 +465,10 @@ class TextDNSValidate(unittest.TestCase):
     def test_validate_zone_record_bad_hostname(self):
         self.assertFalse(V.validate_zone_record("ADD 123 10 A 12.13.24.15"))
         self.assertFalse(V.validate_zone_record("ADD host- 10 A 12.13.24.15"))
-        self.assertFalse(V.validate_zone_record("ADD _host 10 A 12.13.24.15"))
+    
+    def test_validate_zone_record_allow_underscore(self):
+        # _host.example.org is permitted in DNS, even though some resolvers don't like it
+        self.assertTrue(V.validate_zone_record("ADD _host 10 A 12.13.24.15"))
 
     def test_validate_zone_record_nonstrict_hostname(self):
         self.assertTrue(V.validate_zone_record("ADD _host 10 TXT 12.13.24.15"))
