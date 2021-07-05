@@ -55,6 +55,11 @@ def is_valid_name(name, strict=True):
         # Remove the wildcard for validation purposes, then check the remaining name
         name = name[2:]
 
+    # RFC 1123 permits hostname labels to start with digits
+    if name[0] in string.digits:
+        # Forcing first to an alpha char allows label validation to remain simple
+        name = "d" + name[1:]
+
     return is_valid_domain(name, strict=strict)
 
 
