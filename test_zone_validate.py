@@ -465,10 +465,14 @@ class TextDNSValidate(unittest.TestCase):
     def test_validate_zone_record_bad_hostname(self):
         self.assertFalse(V.validate_zone_record("ADD 123 10 A 12.13.24.15"))
         self.assertFalse(V.validate_zone_record("ADD host- 10 A 12.13.24.15"))
-    
+
     def test_validate_zone_record_allow_underscore(self):
         # _host.example.org is permitted in DNS, even though some resolvers don't like it
         self.assertTrue(V.validate_zone_record("ADD _host 10 A 12.13.24.15"))
+
+    def test_validate_zone_record_allow_numeric(self):
+        self.assertTrue(V.validate_zone_record("ADD 111 300 A 127.0.0.1"))
+        self.assertTrue(V.validate_zone_record("ADD 111 300 AAAA ::1"))
 
     def test_validate_zone_record_nonstrict_hostname(self):
         self.assertTrue(V.validate_zone_record("ADD _host 10 TXT 12.13.24.15"))
