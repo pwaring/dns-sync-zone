@@ -65,6 +65,10 @@ def is_valid_name(name, strict=True):
 
 def is_valid_target(name, strict=False):
     """Check that the target of a RR is valid"""
+    
+    if name[0] in string.digits:
+        name = "d" + name[1:]
+        
     if not is_valid_domain(name):
         return False
     if strict and not name.endswith("."):
